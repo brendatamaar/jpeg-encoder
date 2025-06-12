@@ -5,6 +5,13 @@ import { quantizeLuminance, quantizeChrominance } from "./encoder/quantize.js";
 import { zigZagOrderBlock, runLengthEncode } from "./encoder/zigzag.js";
 import { huffmanEncodeRLE } from "./encoder/huffman.js";
 
+import { createJPEGBuffer } from "./image-processing/jpeg-init.js";
+import { writeDQT } from "./image-processing/jpeg-dqt.js";
+import { writeSOF0 } from "./image-processing/jpeg-sof0.js";
+import { writeDHT } from "./image-processing/jpeg-dht.js";
+import { writeSOS } from "./image-processing/jpeg-sos.js";
+import { writeScanDataAndEOI } from "./image-processing/jpeg-scan-eoi.js";
+
 const upload = document.getElementById("upload");
 const output = document.getElementById("compressed-output");
 const reportOutput = document.getElementById("report-output");
@@ -75,6 +82,34 @@ upload.addEventListener("change", async (e) => {
       null,
       2
     );
+
+    /** Generating JPEG image file */
+
+    // Step 1: Initialize JPEG buffer and DataView
+    const { buffer, view, offset: offsetSOI } = createJPEGBuffer();
+    let offset = offsetSOI;
+
+    // Step 2: Write DQT (Define Quantization Tables)
+    offset = writeDQT(view, offset, "luminance");
+    offset = writeDQT(view, offset, "chrominance");
+
+    // Step 3: Write SOF0 (Start of Frame)
+    offset = writeSOF0(view, offset, img.width, img.height);
+
+    // Step 4: Write DHT
+    offset = writeDHT(view, offset);
+
+    // Step 5: Write SOS (Start of Scan)
+    offset = writeSOS(view, offset);
+
+    // Step 6: Write scan data and EOI
+    offset = writeScanDataAndEOI(view, offset);
+    // ✅ Convert buffer into Blob and create image URL
+    const jpegBlob = new Blob([buffer.slice(0, offset)], {
+      type: "image/jpeg",
+    });
+    const jpegUrl = URL.createObjectURL(jpegBlob);
+    output.src = jpegUrl;
   };
 
   img.src = URL.createObjectURL(file);

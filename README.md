@@ -12,9 +12,15 @@ Custom JPEG encoder written in Javascript. It implements the JPEG encoding pipel
 jpeg-encoder/
 ├── index.html
 ├── src/
+│ ├── encoder
+│ │ ├── dct.js
+│ │ ├── quantize.js
+│ │ ├── split.js
+│ │ ├── ycbcr.js
+│ │ ├── zigzag.js
+│ │ └── huffman.js
+│ ├── image-processing
 │ ├── main.js
-└── utils/
-└── matrix.js
 
 ## Installation
 
