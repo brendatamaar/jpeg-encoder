@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JPEG Encoder</title>
+  </head>
+  <body>
+    <h1>JPEG Compressor</h1>
+    <input type="file" id="upload" accept="image/jpeg" />
+    <div id="preview">
+      <h2>Compressed Image</h2>
+      <img id="compressed-output" />
+    </div>
+    <div id="report">
+      <h2>Compression Report</h2>
+      <pre id="report-output"></pre>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
