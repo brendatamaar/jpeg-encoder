@@ -191,8 +191,21 @@ function calculateStatistics(file, result) {
   // Entropy calculation
   const entropy = calculateEntropy(allRLE);
 
-  // Top Huffman codes
-  const topCodes = getTopHuffmanCodes(codeMap);
+  // Huffman codes
+  const topHuffmanCodes = getTopHuffmanCodes(codeMap);
+  const huffmanLengths = Object.values(codeMap).map((code) => code.length);
+  const uniqueCodes = huffmanLengths.length;
+  const avgHuffmanLength = (
+    huffmanLengths.reduce((a, b) => a + b, 0) / uniqueCodes
+  ).toFixed(2);
+
+  // Compression Breakdown (rough estimates)
+  const rawDCTBits = totalCoefficients * 10; // Estimate: 10 bits per raw coefficient
+  const quantizedBits = totalQuantized * 8; // Estimate: 8 bits per quantized coefficient
+  const rleBits = totalRLE * 4; // Estimate: 4 bits per RLE symbol
+  const finalBits = totalHuffman;
+
+  const reduction = 100 - (finalBits / rawDCTBits) * 100;
 
   return {
     processingTime: processingTime.toFixed(2),
@@ -210,7 +223,14 @@ function calculateStatistics(file, result) {
     spaceSaved,
     bitrate,
     entropy,
-    topCodes,
+    topHuffmanCodes,
+    uniqueCodes,
+    avgHuffmanLength,
+    rawDCTSize: (rawDCTBits / 8).toFixed(1),
+    quantizedSize: (quantizedBits / 8).toFixed(1),
+    rleSize: (rleBits / 8).toFixed(1),
+    finalSize: encodedBytes,
+    reductionPercent: reduction.toFixed(2),
   };
 }
 
@@ -281,13 +301,25 @@ function updateReportUI(stats) {
       stats.blockCounts.Cb
     )} Cb + ${formatThousands(stats.blockCounts.Cr)} Cr blocks`,
     totalCoefficients: `${formatThousands(stats.totalCoefficients)} values`,
-    totalQuantizedCoefficients: `${formatThousands(stats.totalQuantized)} values`,
+    totalQuantizedCoefficients: `${formatThousands(
+      stats.totalQuantized
+    )} values`,
     totalRLESymbols: `${formatThousands(stats.totalRLE)} symbols`,
     encodedBitstreamSize: `${formatThousands(stats.encodedBytes)} bytes`,
-    totalHuffmanEncodedCoefficients: `${formatThousands(stats.totalHuffman)} bits`,
+    totalHuffmanEncodedCoefficients: `${formatThousands(
+      stats.totalHuffman
+    )} bits`,
     totalBitrate: `${stats.bitrate} bits/pixel`,
     entropyEstimate: `${stats.entropy} bits/symbol`,
-    huffmanCodes: stats.topCodes,
+    huffmanCodes: stats.topHuffmanCodes,
+    uniqueHuffmanCodes: `${stats.uniqueCodes}`,
+    avgHuffmanLength: `${stats.avgHuffmanLength}`,
+
+    rawDCTSize: `${formatThousands(stats.rawDCTSize)} bytes`,
+    quantizedSize: `${formatThousands(stats.quantizedSize)} bytes`,
+    rleSize: `${formatThousands(stats.rleSize)} bytes`,
+    finalSize: `${formatThousands(stats.finalSize)} bytes`,
+    compressionBreakdownPercent: `${stats.reductionPercent}%`,
   };
 
   Object.entries(updates).forEach(([id, value]) => {
