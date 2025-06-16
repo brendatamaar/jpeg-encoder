@@ -5,17 +5,169 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JPEG Encoder</title>
+    <link type="text/css" href="src/style.css" rel="stylesheet" />
   </head>
   <body>
-    <h1>JPEG Compressor</h1>
-    <input type="file" id="upload" accept="image/jpeg" />
-    <div id="preview">
-      <h2>Compressed Image</h2>
-      <img id="compressed-output" />
-    </div>
-    <div id="report">
-      <h2>Compression Report</h2>
-      <pre id="report-output"></pre>
+    <div class="container">
+      <div class="header">
+        <h1>JPEG Encoder</h1>
+        <p>Upload and compress your images with detailed analysis</p>
+      </div>
+
+      <div class="main-content">
+        <div class="upload-section" id="uploadSection">
+          <div class="file-input-wrapper">
+            <input
+              type="file"
+              id="fileInput"
+              class="file-input"
+              accept="jpeg,jpg"
+              aria-label="Upload image file"
+            />
+            <button class="file-input-button" type="button">
+              <svg
+                class="upload-icon"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                ></path>
+              </svg>
+              Choose Image File
+            </button>
+          </div>
+          <div class="upload-text">
+            Drag and drop an image here, or click to select<br />
+            <small>Supports JPEG/JPG formats</small>
+          </div>
+        </div>
+
+        <div class="results-grid">
+          <div class="image-container">
+            <h3>Original Image</h3>
+            <div class="image-placeholder" id="originalImageContainer">
+              <img
+                id="originalImage"
+                style="
+                  display: none;
+                  max-width: 100%;
+                  max-height: 300px;
+                  object-fit: contain;
+                  border-radius: 4px;
+                "
+              />
+              <span id="default-placeholder">No image selected</span>
+            </div>
+            <div class="image-info" id="originalInfo">
+              Select an image to view details
+            </div>
+          </div>
+
+          <div class="report-section">
+            <h3>
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                ></path>
+              </svg>
+              Compression Report
+            </h3>
+
+            <div class="report-grid">
+              <div class="stat-card">
+                <div class="stat-value" id="compressionRatio">--</div>
+                <div class="stat-label">Compression Ratio</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="spaceSaved">--</div>
+                <div class="stat-label">Space Saved</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="compressionSize">--</div>
+                <div class="stat-label">Compression Size</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="processingTime">--</div>
+                <div class="stat-label">Processing Time</div>
+              </div>
+            </div>
+
+            <div class="compression-details">
+              <h4>Detailed Analysis</h4>
+              <div class="detail-row">
+                <span class="detail-label">Original File Size:</span>
+                <span class="detail-value" id="originalSize">-- KB</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Image Dimensions:</span>
+                <span class="detail-value" id="imageDimensions">-- x --</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Total 8×8 Blocks:</span>
+                <span class="detail-value" id="totalBlocks">--</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Luminance Blocks (Y):</span>
+                <span class="detail-value" id="yBlocks">--</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Chrominance Blocks (Cb, Cr):</span>
+                <span class="detail-value" id="chrominanceBlocks">--</span>
+              </div>
+			  <div class="detail-row">
+                <span class="detail-label">Total DCT Coefficients:</span>
+                <span class="detail-value" id="totalCoefficients">--</span>
+              </div>
+			  <div class="detail-row">
+                <span class="detail-label">Total Quantized Coefficients:</span>
+                <span class="detail-value" id="totalQuantizedCoefficients">--</span>
+              </div>
+			  <div class="detail-row">
+                <span class="detail-label">Total Zig-Zag Coefficients:</span>
+                <span class="detail-value" id="totalZigZagCoefficients">--</span>
+              </div>
+			  <div class="detail-row">
+                <span class="detail-label">Total Run-Length Symbols:</span>
+                <span class="detail-value" id="totalRunLengthEncodedCoefficients">--</span>
+              </div>
+			  <div class="detail-row">
+                <span class="detail-label">Encoded Bitstream Size:</span>
+                <span class="detail-value" id="encodedBitstreamSize">--</span>
+              </div>
+			  <div class="detail-row">
+                <span class="detail-label">Total Huffman Encoded Coefficients:</span>
+                <span class="detail-value" id="totalHuffmanEncodedCoefficients">--</span>
+              </div>
+
+			  <div class="detail-row">
+                <span class="detail-label">Total Bitrate:</span>
+                <span class="detail-value" id="totalBitrate">--</span>
+              </div><div class="detail-row">
+                <span class="detail-label">Entropy Estimate:</span>
+                <span class="detail-value" id="entropyEstimate">--</span>
+              </div><div class="detail-row">
+                <span class="detail-label">Most Common Huffman Codes:</span>
+                <span class="detail-value" id="huffmanCodes">--</span>
+              </div>
+			  
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

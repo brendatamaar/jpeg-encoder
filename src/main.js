@@ -5,112 +5,307 @@ import { quantizeLuminance, quantizeChrominance } from "./encoder/quantize.js";
 import { zigZagOrderBlock, runLengthEncode } from "./encoder/zigzag.js";
 import { huffmanEncodeRLE } from "./encoder/huffman.js";
 
-import { createJPEGBuffer } from "./image-processing/jpeg-init.js";
-import { writeDQT } from "./image-processing/jpeg-dqt.js";
-import { writeSOF0 } from "./image-processing/jpeg-sof0.js";
-import { writeDHT } from "./image-processing/jpeg-dht.js";
-import { writeSOS } from "./image-processing/jpeg-sos.js";
-import { writeScanDataAndEOI } from "./image-processing/jpeg-scan-eoi.js";
+class JPEGEncoder {
+  constructor() {
+    this.upload = document.getElementById("fileInput");
+    this.output = document.getElementById("originalImage");
+    this.defaultPlaceholder = document.getElementById("default-placeholder");
 
-const upload = document.getElementById("upload");
-const output = document.getElementById("compressed-output");
-const reportOutput = document.getElementById("report-output");
+    this.initEventListeners();
+  }
 
-upload.addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  initEventListeners() {
+    this.upload.addEventListener("change", (e) => this.handleFileUpload(e));
+  }
 
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
+  async handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0);
-    const imageData = ctx.getImageData(0, 0, img.width, img.height);
+    try {
+      const imageData = await this.loadImageData(file);
+      const encodingResult = this.encodeImage(imageData, file);
+      this.displayResults(imageData.canvas, file, encodingResult);
+    } catch (error) {
+      console.error("Error processing image:", error);
+    }
+  }
 
-    // Step 1: RGB → YCbCr
+  loadImageData(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+          const imageData = ctx.getImageData(0, 0, img.width, img.height);
+
+          resolve({
+            canvas,
+            imageData,
+            width: img.width,
+            height: img.height,
+          });
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  encodeImage(imageInfo, file) {
+    const startTime = performance.now();
+    const { imageData, width, height } = imageInfo;
+
+    // Step 1: RGB → YCbCr conversion
     const { Y, Cb, Cr } = rgbToYCbCr(imageData);
 
-    // Step 2: Splitting Y, Cb, Cr channels into 8×8 blocks
-    const yBlocks = splitChannel(Y);
-    const cbBlocks = splitChannel(Cb);
-    const crBlocks = splitChannel(Cr);
+    // Step 2: Channel splitting into 8×8 blocks
+    const channels = this.splitChannels(Y, Cb, Cr);
 
-    // Step 3: Applying 2D DCT to each block
-    const yDCTBlocks = yBlocks.map(applyDCT);
-    const cbDCTBlocks = cbBlocks.map(applyDCT);
-    const crDCTBlocks = crBlocks.map(applyDCT);
+    // Step 3: DCT transformation
+    const dctBlocks = this.applyDCTToChannels(channels);
 
-    // Step 4: Quantizing DCT coefficients
-    const yQuantized = yDCTBlocks.map(quantizeLuminance);
-    const cbQuantized = cbDCTBlocks.map(quantizeChrominance);
-    const crQuantized = crDCTBlocks.map(quantizeChrominance);
+    // Step 4: Quantization
+    const quantizedBlocks = this.quantizeChannels(dctBlocks);
 
-    // Step 5: Applying Zig-zag reordering and Run-Length Encoding
-    const yZigZagRLE = yQuantized.map((block) =>
-      runLengthEncode(zigZagOrderBlock(block))
-    );
-    const cbZigZagRLE = cbQuantized.map((block) =>
-      runLengthEncode(zigZagOrderBlock(block))
-    );
-    const crZigZagRLE = crQuantized.map((block) =>
-      runLengthEncode(zigZagOrderBlock(block))
-    );
+    // Step 5: Zig-zag reordering and RLE
+    const rleData = this.applyZigzagAndRLE(quantizedBlocks);
 
-    // Step 6: Applying Huffman encoding
-    // Flatten RLE output from Y, Cb, Cr
-    const allRLE = [...yZigZagRLE, ...cbZigZagRLE, ...crZigZagRLE].flat();
-    const { encodedBitString, codeMap } = huffmanEncodeRLE(allRLE);
+    // Step 6: Huffman encoding
+    const huffmanResult = this.applyHuffmanEncoding(rleData);
 
-    // For now, just show the original image as a placeholder
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.8); // Simulated compression
-    output.src = dataUrl;
+    const endTime = performance.now();
 
-    // Generate a basic report including pipeline status
-    reportOutput.textContent = JSON.stringify(
-      {
-        width: img.width,
-        height: img.height,
-        originalSize: file.size,
-        huffmanBitLength: encodedBitString.length,
-        estimatedCompressedSizeBytes: Math.floor(encodedBitString.length / 8),
-        pipeline: "Step 6: All blocks Huffman encoded",
-        codeMapPreview: Object.entries(codeMap).slice(0, 5),
-      },
-      null,
-      2
-    );
+    return {
+      ...huffmanResult,
+      processingTime: endTime - startTime,
+      channels,
+      quantizedBlocks,
+      rleData,
+      originalSize: file.size,
+      dimensions: { width, height },
+    };
+  }
 
-    /** Generating JPEG image file */
+  splitChannels(Y, Cb, Cr) {
+    return {
+      Y: splitChannel(Y),
+      Cb: splitChannel(Cb),
+      Cr: splitChannel(Cr),
+    };
+  }
 
-    // Step 1: Initialize JPEG buffer and DataView
-    const { buffer, view, offset: offsetSOI } = createJPEGBuffer();
-    let offset = offsetSOI;
+  applyDCTToChannels(channels) {
+    return {
+      Y: channels.Y.map(applyDCT),
+      Cb: channels.Cb.map(applyDCT),
+      Cr: channels.Cr.map(applyDCT),
+    };
+  }
 
-    // Step 2: Write DQT (Define Quantization Tables)
-    offset = writeDQT(view, offset, "luminance");
-    offset = writeDQT(view, offset, "chrominance");
+  quantizeChannels(dctBlocks) {
+    return {
+      Y: dctBlocks.Y.map(quantizeLuminance),
+      Cb: dctBlocks.Cb.map(quantizeChrominance),
+      Cr: dctBlocks.Cr.map(quantizeChrominance),
+    };
+  }
 
-    // Step 3: Write SOF0 (Start of Frame)
-    offset = writeSOF0(view, offset, img.width, img.height);
+  applyZigzagAndRLE(quantizedBlocks) {
+    const processBlocks = (blocks) =>
+      blocks.map((block) => runLengthEncode(zigZagOrderBlock(block)));
 
-    // Step 4: Write DHT
-    offset = writeDHT(view, offset);
+    return {
+      Y: processBlocks(quantizedBlocks.Y),
+      Cb: processBlocks(quantizedBlocks.Cb),
+      Cr: processBlocks(quantizedBlocks.Cr),
+    };
+  }
 
-    // Step 5: Write SOS (Start of Scan)
-    offset = writeSOS(view, offset);
+  applyHuffmanEncoding(rleData) {
+    const allRLE = [...rleData.Y, ...rleData.Cb, ...rleData.Cr].flat();
+    return {
+      ...huffmanEncodeRLE(allRLE),
+      allRLE,
+    };
+  }
 
-    // Step 6: Write scan data and EOI
-    offset = writeScanDataAndEOI(view, offset);
-    // ✅ Convert buffer into Blob and create image URL
-    const jpegBlob = new Blob([buffer.slice(0, offset)], {
-      type: "image/jpeg",
+  displayResults(canvas, file, encodingResult) {
+    this.showOriginalImage(canvas);
+    this.generateReport(file, encodingResult);
+  }
+
+  showOriginalImage(canvas) {
+    const dataUrl = canvas.toDataURL("image/jpeg");
+    this.output.src = dataUrl;
+    this.output.style.display = "block";
+    this.defaultPlaceholder.style.display = "none";
+  }
+
+  generateReport(file, result) {
+    const stats = this.calculateStatistics(file, result);
+    this.updateReportUI(stats);
+  }
+
+  calculateStatistics(file, result) {
+    const {
+      dimensions,
+      channels,
+      quantizedBlocks,
+      allRLE,
+      encodedBitString,
+      codeMap,
+      processingTime,
+    } = result;
+
+    const { width, height } = dimensions;
+
+    // Basic metrics
+    const totalPixels = width * height;
+    const originalSizeKB = (file.size / 1024).toFixed(2);
+
+    // Block counts
+    const blockCounts = {
+      Y: channels.Y.length,
+      Cb: channels.Cb.length,
+      Cr: channels.Cr.length,
+    };
+    const totalBlocks = blockCounts.Y + blockCounts.Cb + blockCounts.Cr;
+
+    // Coefficient counts
+    const totalCoefficients = totalBlocks * 64; // 8×8 blocks
+    const totalQuantized = Object.values(quantizedBlocks).flat().flat().length;
+    const totalRLE = allRLE.length;
+    const totalHuffman = encodedBitString.length;
+
+    console.log(totalRLE);
+
+    // Compression metrics
+    const encodedBytes = Math.ceil(encodedBitString.length / 8);
+    const compressedSizeKB = (encodedBytes / 1024).toFixed(2);
+    const compressionRatio = (file.size / encodedBytes).toFixed(2);
+    const spaceSaved = (100 - (encodedBytes / file.size) * 100).toFixed(2);
+    const bitrate = (encodedBitString.length / totalPixels).toFixed(2);
+
+    // Entropy calculation
+    const entropy = this.calculateEntropy(allRLE);
+
+    // Top Huffman codes
+    const topCodes = this.getTopHuffmanCodes(codeMap);
+
+    return {
+      processingTime: processingTime.toFixed(2),
+      originalSizeKB,
+      dimensions: `${width} px × ${height} px`,
+      blockCounts,
+      totalBlocks,
+      totalCoefficients,
+      totalQuantized,
+      totalRLE,
+      encodedBytes,
+      totalHuffman,
+      compressedSizeKB,
+      compressionRatio,
+      spaceSaved,
+      bitrate,
+      entropy,
+      topCodes,
+    };
+  }
+
+  calculateEntropy(allRLE) {
+    // Debug: Check if allRLE has data
+    if (!allRLE || allRLE.length === 0) {
+      console.warn("allRLE is empty, returning entropy 0");
+      return "0.000";
+    }
+
+    const frequencies = {};
+
+    for (const symbol of allRLE) {
+      let key;
+      if (typeof symbol === "object" && symbol !== null) {
+        if ("run" in symbol && "value" in symbol) {
+          key = `${symbol.run}:${symbol.value}`;
+        } else if ("length" in symbol && "value" in symbol) {
+          key = `${symbol.length}:${symbol.value}`;
+        } else {
+          key = JSON.stringify(symbol);
+        }
+      } else {
+        key = String(symbol);
+      }
+
+      frequencies[key] = (frequencies[key] || 0) + 1;
+    }
+
+    const totalSymbols = allRLE.length;
+
+    if (Object.keys(frequencies).length === 0) {
+      console.warn("No frequencies calculated, returning entropy 0");
+      return "0.000";
+    }
+
+    const entropy = Object.values(frequencies).reduce((acc, frequency) => {
+      const probability = frequency / totalSymbols;
+      if (probability > 0) {
+        return acc - probability * Math.log2(probability);
+      }
+      return acc;
+    }, 0);
+
+    return entropy.toFixed(3);
+  }
+
+  getTopHuffmanCodes(codeMap) {
+    return Object.entries(codeMap)
+      .sort((a, b) => a[1].length - b[1].length)
+      .slice(0, 5)
+      .map(([key, value]) => `${key}:${value}`)
+      .join(", ");
+  }
+
+  updateReportUI(stats) {
+    const updates = {
+      compressionRatio: `${stats.compressionRatio}x`,
+      spaceSaved: `${stats.spaceSaved}%`,
+      compressionSize: `${stats.compressedSizeKB} KB`,
+      processingTime: `${stats.processingTime} ms`,
+      originalSize: `${stats.originalSizeKB} KB`,
+      imageDimensions: stats.dimensions,
+      totalBlocks: `${stats.totalBlocks} blocks`,
+      yBlocks: `${stats.blockCounts.Y} blocks`,
+      chrominanceBlocks: `${stats.blockCounts.Cb} Cb + ${stats.blockCounts.Cr} Cr blocks`,
+      totalCoefficients: `${stats.totalCoefficients} values`,
+      totalQuantizedCoefficients: `${stats.totalQuantized} values`,
+      totalZigZagCoefficients: `${stats.totalRLE} values`,
+      totalRunLengthEncodedCoefficients: `${stats.totalRLE} symbols`,
+      encodedBitstreamSize: `${stats.encodedBytes} bytes`,
+      totalHuffmanEncodedCoefficients: `${stats.totalHuffman} bits`,
+      totalBitrate: `${stats.bitrate} bits/pixel`,
+      entropyEstimate: `${stats.entropy} bits/symbol`,
+      huffmanCodes: stats.topCodes,
+    };
+
+    Object.entries(updates).forEach(([id, value]) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+      }
     });
-    const jpegUrl = URL.createObjectURL(jpegBlob);
-    output.src = jpegUrl;
-  };
+  }
+}
 
-  img.src = URL.createObjectURL(file);
+// Initialize the encoder when the DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  new JPEGEncoder();
 });
