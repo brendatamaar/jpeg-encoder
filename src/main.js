@@ -4,6 +4,7 @@ import { applyDCT } from "./encoder/dct.js";
 import { quantizeLuminance, quantizeChrominance } from "./encoder/quantize.js";
 import { zigZagOrderBlock, runLengthEncode } from "./encoder/zigzag.js";
 import { huffmanEncodeRLE } from "./encoder/huffman.js";
+import { formatThousands, formatTime } from "./utils/format.js";
 
 // DOM elements
 const upload = document.getElementById("fileInput");
@@ -266,6 +267,7 @@ function getTopHuffmanCodes(codeMap) {
 }
 
 function updateReportUI(stats) {
+  console.log(stats);
   const updates = {
     compressionRatio: `${stats.compressionRatio}x`,
     spaceSaved: `${stats.spaceSaved}%`,
@@ -273,15 +275,16 @@ function updateReportUI(stats) {
     processingTime: `${stats.processingTime} ms`,
     originalSize: `${stats.originalSizeKB} KB`,
     imageDimensions: stats.dimensions,
-    totalBlocks: `${stats.totalBlocks} blocks`,
-    yBlocks: `${stats.blockCounts.Y} blocks`,
-    chrominanceBlocks: `${stats.blockCounts.Cb} Cb + ${stats.blockCounts.Cr} Cr blocks`,
-    totalCoefficients: `${stats.totalCoefficients} values`,
-    totalQuantizedCoefficients: `${stats.totalQuantized} values`,
-    totalZigZagCoefficients: `${stats.totalRLE} values`,
-    totalRunLengthEncodedCoefficients: `${stats.totalRLE} symbols`,
-    encodedBitstreamSize: `${stats.encodedBytes} bytes`,
-    totalHuffmanEncodedCoefficients: `${stats.totalHuffman} bits`,
+    totalBlocks: `${formatThousands(stats.totalBlocks)} blocks`,
+    yBlocks: `${formatThousands(stats.blockCounts.Y)} blocks`,
+    chrominanceBlocks: `${formatThousands(
+      stats.blockCounts.Cb
+    )} Cb + ${formatThousands(stats.blockCounts.Cr)} Cr blocks`,
+    totalCoefficients: `${formatThousands(stats.totalCoefficients)} values`,
+    totalQuantizedCoefficients: `${formatThousands(stats.totalQuantized)} values`,
+    totalRLESymbols: `${formatThousands(stats.totalRLE)} symbols`,
+    encodedBitstreamSize: `${formatThousands(stats.encodedBytes)} bytes`,
+    totalHuffmanEncodedCoefficients: `${formatThousands(stats.totalHuffman)} bits`,
     totalBitrate: `${stats.bitrate} bits/pixel`,
     entropyEstimate: `${stats.entropy} bits/symbol`,
     huffmanCodes: stats.topCodes,

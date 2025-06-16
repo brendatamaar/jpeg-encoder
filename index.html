@@ -15,18 +15,12 @@
       </div>
 
       <div class="main-content">
-        <div class="upload-section" id="uploadSection">
-          <div class="file-input-wrapper">
-            <input
-              type="file"
-              id="fileInput"
-              class="file-input"
-              accept="jpeg,jpg"
-              aria-label="Upload image file"
-            />
-            <button class="file-input-button" type="button">
+        <div class="results-grid">
+          <div class="image-container">
+            <h3>
               <svg
-                class="upload-icon"
+                width="20"
+                height="20"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -35,20 +29,50 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                ></path>
+                  d="M3 5a2 2 0 012-2h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V5z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 10l-3.5 4.5L9 13l-3 4h12"
+                />
               </svg>
-              Choose Image File
-            </button>
-          </div>
-          <div class="upload-text">
-            Drag and drop an image here, or click to select<br />
-            <small>Supports JPEG/JPG formats</small>
-          </div>
-        </div>
 
-        <div class="results-grid">
-          <div class="image-container">
+              Upload Image
+            </h3>
+            <div class="upload-section" id="uploadSection">
+              <div class="file-input-wrapper">
+                <input
+                  type="file"
+                  id="fileInput"
+                  class="file-input"
+                  accept="jpeg,jpg"
+                  aria-label="Upload image file"
+                />
+                <button class="file-input-button" type="button">
+                  <svg
+                    class="upload-icon"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    ></path>
+                  </svg>
+                  Choose Image File
+                </button>
+              </div>
+              <div class="upload-text">
+                Drag and drop an image here, or click to select<br />
+                <small>Supports JPEG/JPG formats</small>
+              </div>
+            </div>
+
             <h3>Original Image</h3>
             <div class="image-placeholder" id="originalImageContainer">
               <img
@@ -128,42 +152,45 @@
                 <span class="detail-label">Chrominance Blocks (Cb, Cr):</span>
                 <span class="detail-value" id="chrominanceBlocks">--</span>
               </div>
-			  <div class="detail-row">
+              <div class="detail-row">
                 <span class="detail-label">Total DCT Coefficients:</span>
                 <span class="detail-value" id="totalCoefficients">--</span>
               </div>
-			  <div class="detail-row">
+              <div class="detail-row">
                 <span class="detail-label">Total Quantized Coefficients:</span>
-                <span class="detail-value" id="totalQuantizedCoefficients">--</span>
+                <span class="detail-value" id="totalQuantizedCoefficients"
+                  >--</span
+                >
               </div>
-			  <div class="detail-row">
-                <span class="detail-label">Total Zig-Zag Coefficients:</span>
-                <span class="detail-value" id="totalZigZagCoefficients">--</span>
-              </div>
-			  <div class="detail-row">
+              <div class="detail-row">
                 <span class="detail-label">Total Run-Length Symbols:</span>
-                <span class="detail-value" id="totalRunLengthEncodedCoefficients">--</span>
+                <span class="detail-value" id="totalRLESymbols">--</span>
               </div>
-			  <div class="detail-row">
+              <div class="detail-row">
                 <span class="detail-label">Encoded Bitstream Size:</span>
                 <span class="detail-value" id="encodedBitstreamSize">--</span>
               </div>
-			  <div class="detail-row">
-                <span class="detail-label">Total Huffman Encoded Coefficients:</span>
-                <span class="detail-value" id="totalHuffmanEncodedCoefficients">--</span>
+              <div class="detail-row">
+                <span class="detail-label"
+                  >Total Huffman Encoded Coefficients:</span
+                >
+                <span class="detail-value" id="totalHuffmanEncodedCoefficients"
+                  >--</span
+                >
               </div>
 
-			  <div class="detail-row">
+              <div class="detail-row">
                 <span class="detail-label">Total Bitrate:</span>
                 <span class="detail-value" id="totalBitrate">--</span>
-              </div><div class="detail-row">
+              </div>
+              <div class="detail-row">
                 <span class="detail-label">Entropy Estimate:</span>
                 <span class="detail-value" id="entropyEstimate">--</span>
-              </div><div class="detail-row">
+              </div>
+              <div class="detail-row">
                 <span class="detail-label">Most Common Huffman Codes:</span>
                 <span class="detail-value" id="huffmanCodes">--</span>
               </div>
-			  
             </div>
           </div>
         </div>
